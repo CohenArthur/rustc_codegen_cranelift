@@ -492,13 +492,20 @@ pub(crate) fn codegen_intrinsic_call<'tcx>(
             assert_eq!(args.len(), 3);
             let byte_amount = fx.bcx.ins().imul(count, elem_size);
 
+            // FIXME
+            let is_overlapping = intrinsic.contains("nonoverlapping");
+            fx.bcx.emit_small_memory_copy(fx.cx.module.target_config(), dst, src, byte_amount, elem_size.as_u32() as u8, elem_size.as_u32() as u8, is_overlapping);
+
+            /*
             if intrinsic.contains("nonoverlapping") {
                 // FIXME emit_small_memcpy
+                // fx.bcx.emit_small_memory_copy(fx.cx.module.target_config(), dst, src, byte_amount.as_u32() as u64, 0, 0, true);
                 fx.bcx.call_memcpy(fx.cx.module.target_config(), dst, src, byte_amount);
             } else {
                 // FIXME emit_small_memmove
                 fx.bcx.call_memmove(fx.cx.module.target_config(), dst, src, byte_amount);
             }
+            */
         };
         // NOTE: the volatile variants have src and dst swapped
         volatile_copy_memory | volatile_copy_nonoverlapping_memory, <elem_ty> (v dst, v src, v count) {
