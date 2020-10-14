@@ -29,7 +29,7 @@ impl CargoWrapper {
         Ok(String::from(target_line.strip_prefix(HOST_PREFIX).unwrap()))
     }
 
-    // Configure the environment to use cranelift instead of LLVM
+    /// Configure the environment to use cranelift instead of LLVM
     pub fn config() -> Result<(), std::io::Error> {
         let uname = CargoWrapper::uname()?;
         let host_triple = CargoWrapper::host_triple()?;
@@ -39,6 +39,30 @@ impl CargoWrapper {
             "Darwin" => "dylib",
             _ => return Err(std::io::Error::new(std::io::ErrorKind::Other, "Unsupported OS")),
         };
+
+        // FIXME: Add option to use different targets as in config.sh
+
+        // FIXME: Support $CHANNEL
+
+        std::env::set_var("RUSTC", "cg_clif");
+
+        // FIXME: Use dylib_ext instead of .so
+        std::env::set_var("RUSTDOCFLAGS",
+        r#"-Ztrim-diagnostic-paths=no"
+        "-Cpanic=abort"
+        "-Zpanic-abort-tests"
+        "-Zcodegen-backend=librustc_codegen_cranelift.so"
+        "--sysroot cg_clif_build_sysroot"#);
+
+        // FIXME: Add line regarding atomic shim in Darwin for RUSTFLAGS
+
+        // FIXME: Incomplete
+        let ld_library_path = format!("{}/lib", host_triple);
+
+        std::env::set_var("LD_LIBRARY_PATH", &ld_library_path);
+        std::env::set_var("DYLD_LIBRARY_PATH", &ld_library_path);
+
+        std::env::set_var("CG_CLIF_DISPLAY_CG_TIME", "1");
 
         Ok(())
     }
