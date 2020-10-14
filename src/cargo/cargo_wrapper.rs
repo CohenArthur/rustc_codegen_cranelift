@@ -2,6 +2,7 @@
 
 const HOST_PREFIX: &str = "host: ";
 
+use chrono::Datelike;
 use std::process::Command;
 
 pub struct CargoWrapper;
@@ -27,6 +28,11 @@ impl CargoWrapper {
         }
 
         Ok(String::from(target_line.strip_prefix(HOST_PREFIX).unwrap()))
+    }
+
+    fn toolchain() -> String {
+        let now = chrono::Local::now();
+        format!("nightly-{}-{}-{}", now.year(), now.month(), now.day())
     }
 
     /// Configure the environment to use cranelift instead of LLVM
@@ -65,5 +71,23 @@ impl CargoWrapper {
         std::env::set_var("CG_CLIF_DISPLAY_CG_TIME", "1");
 
         Ok(())
+    }
+
+    /// Run cargo after configuring it
+    pub fn run() -> Result<std::process::ExitStatus, std::io::Error> {
+        let toolchain = CargoWrapper::toolchain();
+
+        let mut cargo = Command::new("cargo");
+
+        // Skip the binary name and the "cranelift" argument
+        let args: Vec::<String> = std::env::args()
+            .skip(1)
+            .filter(|arg| arg != "cranelift")
+            .collect();
+
+        cargo.arg(&format!("+{}", toolchain));
+        cargo.args(args);
+
+        cargo.status()
     }
 }
